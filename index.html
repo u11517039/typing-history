@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>英打遊戲開發歷程</title>
+  <style>
+    html, body { margin: 0; background: #ffffff; color: #111111; }
+    body {
+      min-height: 100vh; padding: 32px 16px; box-sizing: border-box;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    h1 { text-align: center; margin: 0 0 8px; }
+    .sub { text-align: center; margin: 0 0 32px; color: #555555; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; margin: 0 auto; }
+    .card {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 24px; border: 2px solid #111111; border-radius: 12px;
+      text-decoration: none; color: inherit; background: #ffffff;
+    }
+    .card:hover { background: #f1f3f5; }
+    .card h2 { margin: 0; font-size: 1.4rem; }
+    .card p { margin: 0; color: #444444; }
+    .card .go { margin-top: auto; font-weight: bold; }
+    @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>英打遊戲開發歷程</h1>
+  <p class="sub">從空白按鈕，一步一步做成遊戲</p>
+  <div class="cards">
+    <a class="card" href="https://u11517039.github.io/typing-v1/" target="_blank" rel="noopener">
+      <h2>版本一</h2>
+      <p>標題與開始按鈕，還沒有任何互動。</p>
+      <span class="go">開啟 →</span>
+    </a>
+    <a class="card" href="https://u11517039.github.io/typing-v2/" target="_blank" rel="noopener">
+      <h2>版本二</h2>
+      <p>加入鍵盤圖片，按開始會有嗶嗶聲。</p>
+      <span class="go">開啟 →</span>
+    </a>
+    <a class="card" href="coming-soon.html">
+      <h2>版本三</h2>
+      <p>Coming Soon</p>
+      <span class="go">查看 →</span>
+    </a>
+  </div>
+</body>
+</html>
