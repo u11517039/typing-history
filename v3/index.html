@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>英打遊戲版本三：ASDF</title>
+  <style>
+    html, body { margin: 0; background: #ffffff; color: #111111; }
+    body {
+      min-height: 100vh; padding: 24px 16px; box-sizing: border-box;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    h1 { margin: 0; font-size: 1.8rem; }
+    .info { display: flex; gap: 40px; align-items: center; }
+    .box { text-align: center; }
+    .label { color: #555555; font-size: 0.9rem; }
+    #target { font-size: 4rem; font-weight: bold; line-height: 1.1; min-width: 1.2em; }
+    #score { font-size: 2rem; font-weight: bold; }
+    #hint { min-height: 1.5em; margin: 0; color: #555555; }
+    .keyboard { display: flex; flex-direction: column; gap: 6px; align-items: center; max-width: 100%; }
+    .row { display: flex; gap: 6px; }
+    .key {
+      position: relative; width: 52px; height: 52px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #495057; border-radius: 8px; background: #ffffff;
+      font-size: 1.1rem; font-weight: bold;
+    }
+    .key.on { background: #e03131; border-color: #a61e1e; color: #ffffff; }
+    .key.on::after {
+      content: ""; position: absolute; bottom: 5px; width: 8px; height: 8px;
+      border-radius: 50%; background: #ffffff;
+    }
+    .row2 { margin-left: 26px; } .row3 { margin-left: 52px; }
+    .buttons { display: flex; gap: 12px; }
+    button {
+      font-size: 1.1rem; padding: 8px 28px; border: 2px solid #111111;
+      border-radius: 8px; background: #ffffff; color: #111111; cursor: pointer;
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    a { color: #111111; font-weight: bold; }
+    @media (max-width: 640px) { .key { width: 28px; height: 28px; font-size: 0.7rem; border-width: 1px; } .row2 { margin-left: 14px; } .row3 { margin-left: 28px; } }
+  </style>
+</head>
+<body>
+  <h1>版本三：ASDF 練習</h1>
+  <div class="info">
+    <div class="box"><div class="label">請按</div><div id="target">-</div></div>
+    <div class="box"><div class="label">分數</div><div id="score">0</div></div>
+  </div>
+  <p id="hint">按「開始」，然後用實體鍵盤（英文輸入）按下亮起的字母。</p>
+  <div class="keyboard" id="keyboard"></div>
+  <div class="buttons">
+    <button type="button" id="start">開始</button>
+    <button type="button" id="stop" disabled>停止練習</button>
+  </div>
+  <a href="../index.html">← 回開發歷程首頁</a>
+  <script>
+    var rows = ["QWERTYUIOP", "ASDFGHJKL;", "ZXCVBNM,./"];
+    var pool = ["a", "s", "d", "f"];
+    var kb = document.getElementById("keyboard");
+    var keyEls = {};
+    rows.forEach(function (r, i) {
+      var row = document.createElement("div");
+      row.className = "row row" + (i + 1);
+      r.split("").forEach(function (ch) {
+        var k = document.createElement("div");
+        k.className = "key"; k.textContent = ch;
+        keyEls[ch.toLowerCase()] = k; row.appendChild(k);
+      });
+      kb.appendChild(row);
+    });
+
+    var running = false, target = null, score = 0;
+    var targetEl = document.getElementById("target");
+    var scoreEl = document.getElementById("score");
+    var hintEl = document.getElementById("hint");
+    var startBtn = document.getElementById("start");
+    var stopBtn = document.getElementById("stop");
+
+    function clearKeys() { for (var c in keyEls) keyEls[c].classList.remove("on"); }
+    function nextQuestion() {
+      var choices = pool.filter(function (c) { return c !== target; });
+      target = choices[Math.floor(Math.random() * choices.length)];
+      targetEl.textContent = target.toUpperCase();
+      clearKeys(); keyEls[target].classList.add("on");
+    }
+    function start() {
+      running = true; score = 0; scoreEl.textContent = 0; target = null;
+      hintEl.textContent = "按對加一分；按錯不扣分，題目不變。";
+      startBtn.textContent = "重新開始"; stopBtn.disabled = false;
+      nextQuestion(); startBtn.blur();
+    }
+    function stop() {
+      running = false; target = null; targetEl.textContent = "-"; clearKeys();
+      hintEl.textContent = "已停止，最後分數 " + score + " 分。按「重新開始」再練一次。";
+      stopBtn.disabled = true; stopBtn.blur();
+    }
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", stop);
+
+    document.addEventListener("keydown", function (e) {
+      if (!running || e.repeat) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key.length !== 1) return;
+      if (e.key.toLowerCase() === target) {
+        score++; scoreEl.textContent = score; nextQuestion();
+      }
+    });
+  </script>
+</body>
+</html>
