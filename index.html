@@ -12,7 +12,7 @@
     }
     h1 { text-align: center; margin: 0 0 8px; }
     .sub { text-align: center; margin: 0 0 32px; color: #555555; }
-    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; margin: 0 auto; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 960px; margin: 0 auto; }
     .card {
       display: flex; flex-direction: column; gap: 10px;
       padding: 24px; border: 2px solid #111111; border-radius: 12px;
@@ -22,8 +22,7 @@
     .card h2 { margin: 0; font-size: 1.4rem; }
     .card p { margin: 0; color: #444444; }
     .card .go { margin-top: auto; font-weight: bold; }
-    @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
-  </style>
+      </style>
 </head>
 <body>
   <h1>英打遊戲開發歷程</h1>
@@ -42,6 +41,11 @@
     <a class="card" href="v3/index.html">
       <h2>版本三</h2>
       <p>左手 ASDF 練習，按對就得分。</p>
+      <span class="go">開始玩 →</span>
+    </a>
+    <a class="card" href="v4/index.html">
+      <h2>版本四</h2>
+      <p>十鍵掉落字母，落地前按對就消除。</p>
       <span class="go">開始玩 →</span>
     </a>
   </div>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>英打遊戲版本四：掉落字母</title>
+  <style>
+    html, body { margin: 0; background: #ffffff; color: #111111; }
+    body {
+      min-height: 100vh; padding: 20px 16px; box-sizing: border-box;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    h1 { margin: 0; font-size: 1.7rem; }
+    .stats { display: flex; gap: 28px; font-size: 1.05rem; }
+    .stats b { font-size: 1.4rem; }
+    #field {
+      position: relative; width: 320px; max-width: 100%; height: 300px;
+      border: 2px solid #111111; border-radius: 10px; background: #f8f9fa; overflow: hidden;
+    }
+    #ground { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: #e03131; }
+    #letter {
+      position: absolute; left: 50%; top: 0; margin-left: -28px; width: 56px; height: 56px;
+      display: none; align-items: center; justify-content: center;
+      border: 2px solid #a61e1e; border-radius: 10px; background: #ffffff;
+      font-size: 2rem; font-weight: bold;
+    }
+    #overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 16px; background: rgba(255,255,255,0.92); line-height: 1.7;
+    }
+    #hint { min-height: 1.4em; margin: 0; color: #555555; text-align: center; }
+    .keyboard { display: flex; flex-direction: column; gap: 6px; align-items: center; max-width: 100%; }
+    .row { display: flex; gap: 6px; }
+    .key {
+      position: relative; width: 48px; height: 48px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #495057; border-radius: 8px; background: #ffffff;
+      font-size: 1.05rem; font-weight: bold;
+    }
+    .key.on { background: #e03131; border-color: #a61e1e; color: #ffffff; }
+    .key.on::after { content: ""; position: absolute; bottom: 4px; width: 8px; height: 8px; border-radius: 50%; background: #ffffff; }
+    .row2 { margin-left: 24px; } .row3 { margin-left: 48px; }
+    .controls { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; max-width: 420px; }
+    .slider { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .slider input { flex: 1; }
+    .buttons { display: flex; gap: 12px; }
+    button {
+      font-size: 1.05rem; padding: 8px 26px; border: 2px solid #111111;
+      border-radius: 8px; background: #ffffff; color: #111111; cursor: pointer;
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    a { color: #111111; font-weight: bold; }
+    @media (max-width: 640px) { .key { width: 28px; height: 28px; font-size: 0.7rem; border-width: 1px; } .row2 { margin-left: 14px; } .row3 { margin-left: 28px; } }
+  </style>
+</head>
+<body>
+  <h1>版本四：掉落字母</h1>
+  <div class="stats">
+    <div>題數 <b id="qn">0</b>/10</div>
+    <div>答對 <b id="score">0</b></div>
+    <div>落地 <b id="missed">0</b></div>
+  </div>
+  <div id="field">
+    <div id="letter"></div>
+    <div id="ground"></div>
+    <div id="overlay">按「開始」後，用實體鍵盤（英文輸入）<br>在字母落地前按對它。</div>
+  </div>
+  <p id="hint"></p>
+  <div class="keyboard" id="keyboard"></div>
+  <div class="controls">
+    <div class="slider">
+      <label for="speed">每個字母落地時間</label>
+      <input type="range" id="speed" min="3" max="14" step="1" value="8">
+      <span><b id="speedVal">8</b> 秒</span>
+    </div>
+    <label><input type="checkbox" id="accel"> 漸進加速（每答對三題縮短一秒，最短三秒）</label>
+    <div class="buttons">
+      <button type="button" id="start">開始</button>
+      <button type="button" id="pause" disabled>暫停</button>
+    </div>
+  </div>
+  <a href="../index.html">← 回開發歷程首頁</a>
+  <script>
+    var LETTERS = ["a","s","d","f","g","h","j","k","l",";"];
+    var TOTAL = 10, FIELD_H = 300, LETTER_H = 56;
+    var rows = ["QWERTYUIOP", "ASDFGHJKL;", "ZXCVBNM,./"];
+    var kb = document.getElementById("keyboard"), keyEls = {};
+    rows.forEach(function (r, i) {
+      var row = document.createElement("div"); row.className = "row row" + (i + 1);
+      r.split("").forEach(function (ch) {
+        var k = document.createElement("div"); k.className = "key"; k.textContent = ch;
+        keyEls[ch.toLowerCase()] = k; row.appendChild(k);
+      });
+      kb.appendChild(row);
+    });
+
+    var $ = function (id) { return document.getElementById(id); };
+    var letterEl = $("letter"), overlay = $("overlay"), hintEl = $("hint");
+    var speed = $("speed"), speedVal = $("speedVal"), accel = $("accel");
+    var startBtn = $("start"), pauseBtn = $("pause");
+
+    var mode = "idle";            // idle | running | paused | done
+    var target = null, progress = 0, last = 0, raf = 0;
+    var answered = 0, correct = 0, missed = 0, wrong = 0;
+
+    function baseSec() { return Number(speed.value); }
+    function duration() {
+      var s = baseSec();
+      if (accel.checked) s = Math.max(3, s - Math.floor(correct / 3));
+      return s;
+    }
+    function clearKeys() { for (var c in keyEls) keyEls[c].classList.remove("on"); }
+    function updateStats() {
+      $("qn").textContent = Math.min(answered + (mode === "running" || mode === "paused" ? 1 : 0), TOTAL);
+      $("score").textContent = correct; $("missed").textContent = missed;
+    }
+    function render() { letterEl.style.top = (progress * (FIELD_H - LETTER_H - 6)) + "px"; }
+
+    function nextQuestion() {
+      var choices = LETTERS.filter(function (c) { return c !== target; });
+      target = choices[Math.floor(Math.random() * choices.length)];
+      progress = 0;
+      letterEl.textContent = target.toUpperCase(); letterEl.style.display = "flex";
+      clearKeys(); keyEls[target].classList.add("on");
+      render(); updateStats();
+    }
+    function finishQuestion() {
+      answered++;
+      if (answered >= TOTAL) { endRound(); } else { nextQuestion(); }
+    }
+    function tick(now) {
+      if (mode !== "running") return;
+      progress += ((now - last) / 1000) / duration();
+      last = now;
+      if (progress >= 1) { missed++; hintEl.textContent = "落地了，繼續下一題。"; finishQuestion(); if (mode !== "running") return; }
+      else render();
+      raf = requestAnimationFrame(tick);
+    }
+    function loop() { cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(tick); }
+
+    function startRound() {
+      answered = 0; correct = 0; missed = 0; wrong = 0; target = null;
+      overlay.style.display = "none"; hintEl.textContent = "";
+      mode = "running"; startBtn.textContent = "重新開始";
+      pauseBtn.disabled = false; pauseBtn.textContent = "暫停";
+      nextQuestion(); loop(); startBtn.blur();
+    }
+    function pauseRound(auto) {
+      if (mode !== "running") return;
+      mode = "paused"; cancelAnimationFrame(raf);
+      pauseBtn.textContent = "繼續";
+      hintEl.textContent = auto ? "已暫停（離開了視窗或在調整設定），按「繼續」。" : "已暫停，按「繼續」。";
+    }
+    function resumeRound() {
+      if (mode !== "paused") return;
+      mode = "running"; pauseBtn.textContent = "暫停"; hintEl.textContent = "";
+      loop(); pauseBtn.blur();
+    }
+    function endRound() {
+      mode = "done"; cancelAnimationFrame(raf);
+      letterEl.style.display = "none"; clearKeys(); pauseBtn.disabled = true;
+      updateStats();
+      overlay.innerHTML = "這一回合結束<br>答對 <b>" + correct + "</b> / " + TOTAL +
+        " 題<br>落地 " + missed + " 題，按錯 " + wrong + " 次<br>按「重新開始」再玩一次。";
+      overlay.style.display = "flex";
+    }
+
+    startBtn.addEventListener("click", startRound);
+    pauseBtn.addEventListener("click", function () { if (mode === "running") pauseRound(false); else resumeRound(); });
+
+    speed.addEventListener("pointerdown", function () { pauseRound(true); });
+    speed.addEventListener("input", function () { pauseRound(true); speedVal.textContent = speed.value; });
+    accel.addEventListener("change", function () { pauseRound(true); accel.blur(); });
+    window.addEventListener("blur", function () { pauseRound(true); });
+    document.addEventListener("visibilitychange", function () { if (document.hidden) pauseRound(true); });
+
+    document.addEventListener("keydown", function (e) {
+      if (mode !== "running" || e.repeat) return;
+      if (e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1) return;
+      if (e.key.toLowerCase() === target) {
+        correct++; hintEl.textContent = ""; finishQuestion();
+        if (mode === "running") { /* nextQuestion already called */ }
+      } else {
+        wrong++; hintEl.textContent = "按錯了，字母還在掉！";
+      }
+    });
+  </script>
+</body>
+</html>
